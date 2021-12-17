@@ -1,0 +1,30 @@
+version: '3'
+services:
+  envoy:
+    # logging:
+    #   driver: none
+    links:
+      - httpbin
+    image: "docker.io/istio/proxyv2:1.12.0"
+    entrypoint:
+      - /usr/local/bin/envoy
+      - -c
+      - /etc/envoy/envoy.yaml
+    ports:
+      - "15000:15000"
+      - "10000:10000"
+    volumes:
+      - ./config/envoy.yaml:/etc/envoy/envoy.yaml
+      - ./out/:/etc/envoy/wasm-plugins/
+  ext-proc:
+    image: cosmtrek/air
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./:/app
+    working_dir: /app
+    command: "-c ./config/air.conf"
+  httpbin:
+    logging:
+      driver: none
+    image: kennethreitz/httpbin
