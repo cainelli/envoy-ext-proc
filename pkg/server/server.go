@@ -1,7 +1,8 @@
 package server
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
 	"net"
 
 	extproc "github.com/envoyproxy/go-control-plane/envoy/service/ext_proc/v3"
@@ -20,20 +21,20 @@ func NewExtProcServer(extProcServerv3 extproc.ExternalProcessorServer) *ExtProcS
 	}
 }
 
-func (extProcSrv *ExtProcServer) Run(grpcAddr string) {
+func (extProcSrv *ExtProcServer) Run(grpcAddr string) error {
 	listener, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
-		log.Fatalf("failed to start gRPC server: %v", err)
+		return fmt.Errorf("failed to listen: %w", err)
 	}
 
 	extProcSrv.grpcServer = grpc.NewServer()
 	extproc.RegisterExternalProcessorServer(extProcSrv.grpcServer, extProcSrv.extProc)
 
-	log.Printf("starting gRPC server at %s", listener.Addr())
+	slog.Info("starting gRPC server", "port", grpcAddr)
 	if err := extProcSrv.grpcServer.Serve(listener); err != nil {
-		log.Fatalf("Failed to serve gRPC server: %v", err)
-		return
+		return fmt.Errorf("failed to serve: %w", err)
 	}
+	return nil
 }
 
 func (extProcSrv *ExtProcServer) Stop() {
