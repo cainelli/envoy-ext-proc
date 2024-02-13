@@ -54,9 +54,9 @@ func (svc *ExtProcessor) Process(procsrv extproc.ExternalProcessor_ProcessServer
 }
 
 func (svc *ExtProcessor) requestHeadersMessage(ctx context.Context, req *processor.Request, procsrv extproc.ExternalProcessor_ProcessServer) error {
-	cr := &extproc.CommonResponse{}
+	crw := processor.NewCommonResponseWriter()
 	for _, p := range svc.Processors {
-		immediateResponse, err := p.RequestHeaders(ctx, cr, req)
+		immediateResponse, err := p.RequestHeaders(ctx, crw, req)
 		if err != nil {
 			return fmt.Errorf("RequestHeaders: failed running processor %T: %w", p, err)
 		}
@@ -65,7 +65,7 @@ func (svc *ExtProcessor) requestHeadersMessage(ctx context.Context, req *process
 				Response: immediateResponse,
 			})
 		}
-		if err := cr.Validate(); err != nil {
+		if err := crw.CommonResponse().Validate(); err != nil {
 			return fmt.Errorf("RequestHeaders: failed validating response in processor %T: %w", p, err)
 		}
 
@@ -73,7 +73,7 @@ func (svc *ExtProcessor) requestHeadersMessage(ctx context.Context, req *process
 	r := &extproc.ProcessingResponse{
 		Response: &extproc.ProcessingResponse_RequestHeaders{
 			RequestHeaders: &extproc.HeadersResponse{
-				Response: cr,
+				Response: crw.CommonResponse(),
 			},
 		},
 	}
@@ -88,9 +88,9 @@ func (svc *ExtProcessor) requestHeadersMessage(ctx context.Context, req *process
 }
 
 func (svc *ExtProcessor) responseHeadersMessage(ctx context.Context, req *processor.Request, procsrv extproc.ExternalProcessor_ProcessServer) error {
-	cr := &extproc.CommonResponse{}
+	crw := processor.NewCommonResponseWriter()
 	for _, p := range svc.Processors {
-		immediateResponse, err := p.ResponseHeaders(ctx, cr, req)
+		immediateResponse, err := p.ResponseHeaders(ctx, crw, req)
 		if err != nil {
 			return fmt.Errorf("ResponseHeaders: failed running processor %T: %w", p, err)
 		}
@@ -99,14 +99,14 @@ func (svc *ExtProcessor) responseHeadersMessage(ctx context.Context, req *proces
 				Response: immediateResponse,
 			})
 		}
-		if err := cr.Validate(); err != nil {
+		if err := crw.CommonResponse().Validate(); err != nil {
 			return fmt.Errorf("ResponseHeaders: failed validating response in processor %T: %w", p, err)
 		}
 	}
 	r := &extproc.ProcessingResponse{
 		Response: &extproc.ProcessingResponse_ResponseHeaders{
 			ResponseHeaders: &extproc.HeadersResponse{
-				Response: cr,
+				Response: crw.CommonResponse(),
 			},
 		},
 	}

@@ -55,10 +55,6 @@ func (r *Request) CommonResponse() *extproc.CommonResponse {
 	return r.commonResponse
 }
 
-type IsProcessingRequest interface {
-	*extproc.ProcessingRequest_RequestHeaders | *extproc.ProcessingRequest_ResponseHeaders
-}
-
 func (r *Request) Process(message any) {
 	switch msg := any(message).(type) {
 	case *extproc.ProcessingRequest_RequestHeaders:

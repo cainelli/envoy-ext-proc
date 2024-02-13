@@ -5,9 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/cainelli/ext-proc/pkg/service/builder"
 	"github.com/cainelli/ext-proc/pkg/service/processor"
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	extproc "github.com/envoyproxy/go-control-plane/envoy/service/ext_proc/v3"
 )
 
@@ -17,17 +15,16 @@ type SetCookieProcessor struct {
 
 var _ processor.Processor = &SetCookieProcessor{}
 
-func (*SetCookieProcessor) ResponseHeaders(ctx context.Context, cr *extproc.CommonResponse, req *processor.Request) (*extproc.ProcessingResponse_ImmediateResponse, error) {
-	rb := builder.NewFromCommonResponse(cr)
+func (*SetCookieProcessor) ResponseHeaders(ctx context.Context, crw *processor.CommonResponseWriter, req *processor.Request) (*extproc.ProcessingResponse_ImmediateResponse, error) {
 	setCookies := parseSetCookies(req)
-
-	action := corev3.HeaderValueOption_OVERWRITE_IF_EXISTS_OR_ADD
 	for i, cookie := range setCookies {
-		if i > 0 {
-			action = corev3.HeaderValueOption_APPEND_IF_EXISTS_OR_ADD
+		cookie.SameSite = http.SameSiteLaxMode
+		cookie.HttpOnly = true
+		if i == 0 {
+			crw.HeaderSet("set-cookie", cookie.String())
+			continue
 		}
-		cookie.SameSite = http.SameSiteStrictMode
-		rb.Header("set-cookie", cookie.String(), action) // works
+		crw.HeaderAppend("set-cookie", cookie.String())
 		slog.Info("processing", "processor", "SetCookie", "method", "ResponseHeaders", "set-cookie", cookie.String())
 	}
 
