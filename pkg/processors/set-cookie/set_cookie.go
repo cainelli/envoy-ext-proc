@@ -17,7 +17,7 @@ type SetCookieProcessor struct {
 
 var _ processor.Processor = &SetCookieProcessor{}
 
-func (*SetCookieProcessor) ResponseHeaders(ctx context.Context, cr *extproc.CommonResponse, req *processor.Request) error {
+func (*SetCookieProcessor) ResponseHeaders(ctx context.Context, cr *extproc.CommonResponse, req *processor.Request) (*extproc.ProcessingResponse_ImmediateResponse, error) {
 	rb := builder.NewFromCommonResponse(cr)
 	setCookies := parseSetCookies(req)
 
@@ -31,7 +31,7 @@ func (*SetCookieProcessor) ResponseHeaders(ctx context.Context, cr *extproc.Comm
 		slog.Info("processing", "processor", "SetCookie", "method", "ResponseHeaders", "set-cookie", cookie.String())
 	}
 
-	return nil
+	return nil, nil
 }
 
 func parseSetCookies(req *processor.Request) []*http.Cookie {

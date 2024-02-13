@@ -56,17 +56,14 @@ func (svc *ExtProcessor) Process(procsrv extproc.ExternalProcessor_ProcessServer
 func (svc *ExtProcessor) requestHeadersMessage(ctx context.Context, req *processor.Request, procsrv extproc.ExternalProcessor_ProcessServer) error {
 	cr := &extproc.CommonResponse{}
 	for _, p := range svc.Processors {
-		ir, err := p.ImmediateResponse(ctx, req)
+		immediateResponse, err := p.RequestHeaders(ctx, cr, req)
 		if err != nil {
-			return fmt.Errorf("ImmediateResponse: failed running processor %T: %w", p, err)
-		}
-		if ir != nil {
-			return procsrv.Send(&extproc.ProcessingResponse{
-				Response: ir,
-			})
-		}
-		if err := p.RequestHeaders(ctx, cr, req); err != nil {
 			return fmt.Errorf("RequestHeaders: failed running processor %T: %w", p, err)
+		}
+		if immediateResponse != nil {
+			return procsrv.Send(&extproc.ProcessingResponse{
+				Response: immediateResponse,
+			})
 		}
 		if err := cr.Validate(); err != nil {
 			return fmt.Errorf("RequestHeaders: failed validating response in processor %T: %w", p, err)
@@ -93,17 +90,14 @@ func (svc *ExtProcessor) requestHeadersMessage(ctx context.Context, req *process
 func (svc *ExtProcessor) responseHeadersMessage(ctx context.Context, req *processor.Request, procsrv extproc.ExternalProcessor_ProcessServer) error {
 	cr := &extproc.CommonResponse{}
 	for _, p := range svc.Processors {
-		ir, err := p.ImmediateResponse(ctx, req)
+		immediateResponse, err := p.ResponseHeaders(ctx, cr, req)
 		if err != nil {
-			return fmt.Errorf("ImmediateResponse: failed running processor %T: %w", p, err)
-		}
-		if ir != nil {
-			return procsrv.Send(&extproc.ProcessingResponse{
-				Response: ir,
-			})
-		}
-		if err := p.ResponseHeaders(ctx, cr, req); err != nil {
 			return fmt.Errorf("ResponseHeaders: failed running processor %T: %w", p, err)
+		}
+		if immediateResponse != nil {
+			return procsrv.Send(&extproc.ProcessingResponse{
+				Response: immediateResponse,
+			})
 		}
 		if err := cr.Validate(); err != nil {
 			return fmt.Errorf("ResponseHeaders: failed validating response in processor %T: %w", p, err)
