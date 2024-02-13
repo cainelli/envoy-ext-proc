@@ -18,10 +18,11 @@ func NewFromCommonResponse(cr *extproc.CommonResponse) *CommonResponseBuilder {
 	}
 }
 
-func (b *CommonResponseBuilder) Header(key string, value string, action corev3.HeaderValueOption_HeaderAppendAction) *CommonResponseBuilder {
+func (b *CommonResponseBuilder) Header(key string, value string, appendAction corev3.HeaderValueOption_HeaderAppendAction) *CommonResponseBuilder {
 	// FIXME: This is not the documented behavior but it seems to be the only way to append a header.
 	var append *wrappers.BoolValue
-	if action == corev3.HeaderValueOption_APPEND_IF_EXISTS_OR_ADD {
+	switch appendAction {
+	case corev3.HeaderValueOption_APPEND_IF_EXISTS_OR_ADD:
 		append = &wrappers.BoolValue{Value: true}
 	}
 	return b.SetHeaders(&corev3.HeaderValueOption{
@@ -33,7 +34,7 @@ func (b *CommonResponseBuilder) Header(key string, value string, action corev3.H
 			// When it is true, the header value is encoded in the raw_value field. When it is false, the header value is encoded in the value field.
 			RawValue: []byte(value), // FIXME: This depends on Envoy
 		},
-		AppendAction: action,
+		AppendAction: appendAction,
 		Append:       append,
 	})
 }
