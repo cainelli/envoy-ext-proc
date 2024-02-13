@@ -1,11 +1,12 @@
 package processor
 
 import (
+	"cmp"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	extproc "github.com/envoyproxy/go-control-plane/envoy/service/ext_proc/v3"
 )
 
@@ -19,50 +20,44 @@ type Request struct {
 	url             *url.URL
 	requestId       string
 	status          int
-	requestHeaders  *extproc.ProcessingRequest_RequestHeaders
-	responseHeaders *extproc.ProcessingRequest_ResponseHeaders
+	requestHeaders  http.Header
+	responseHeaders http.Header
 }
 
 // RequestHeaders returns the HTTP request headers. All header keys will be lower-cased.
 // When using this method to acces the headers, make sure you use the correct HeaderValue property, GetValue() or GetRawValue().
 // https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/base.proto#envoy-v3-api-msg-config-core-v3-headervalue
-func (r *Request) RequestHeaders() []*corev3.HeaderValue {
-	return r.requestHeaders.RequestHeaders.GetHeaders().GetHeaders()
+func (r *Request) RequestHeaders() map[string][]string {
+	return r.requestHeaders
 }
 
 // GetRequestHeader returns the value of the header with the given key. If the header is not found, it returns an empty string.
 // If the header has multiple values, it returns the first one. If you need all the values, use RequestHeaders()
 func (r *Request) GetRequestHeader(key string) string {
-	for _, header := range r.RequestHeaders() {
-		if header.Key == key {
-			if header.GetValue() != "" {
-				return header.GetValue()
-			}
-			return string(header.GetRawValue())
-		}
-	}
-	return ""
+	return r.requestHeaders.Get(key)
+}
+
+// RequestHeaderValues returns all the values of the header with the given key. If the header is not found, it returns an empty slice.
+func (r *Request) RequestHeaderValues(key string) []string {
+	return r.requestHeaders.Values(key)
 }
 
 // ResponseHeaders returns the HTTP response headers. All header keys will be lower-cased.
 // When using this method to acces the headers, make sure you use the correct HeaderValue property, GetValue() or GetRawValue().
 // https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/base.proto#envoy-v3-api-msg-config-core-v3-headervalue
-func (r *Request) ResponseHeaders() []*corev3.HeaderValue {
-	return r.responseHeaders.ResponseHeaders.GetHeaders().GetHeaders()
+func (r *Request) ResponseHeaders() map[string][]string {
+	return r.responseHeaders
 }
 
 // GetResponseHeader returns the value of the header with the given key. If the header is not found, it returns an empty string.
 // If the header has multiple values, it returns the first one. If you need all the values, use ResponseHeaders()
 func (r *Request) GetResponseHeader(key string) string {
-	for _, header := range r.ResponseHeaders() {
-		if header.Key == key {
-			if header.GetValue() != "" {
-				return header.GetValue()
-			}
-			return string(header.GetRawValue())
-		}
-	}
-	return ""
+	return r.responseHeaders.Get(key)
+}
+
+// RequestHeaderValues returns all the values of the header with the given key. If the header is not found, it returns an empty slice.
+func (r *Request) ResponseHeaderValues(key string) []string {
+	return r.responseHeaders.Values(key)
 }
 
 // Scheme returns the scheme of the request (http or https)
@@ -98,18 +93,24 @@ func (r *Request) Status() int {
 // Process processes the given message and updates the request object accordingly
 // It should be called on every message received from Envoy
 func (r *Request) Process(message any) {
-	switch msg := any(message).(type) {
-	case *extproc.ProcessingRequest_RequestHeaders:
-		r.requestHeaders = msg
-	case *extproc.ProcessingRequest_ResponseHeaders:
-		r.responseHeaders = msg
+	if r.requestHeaders == nil {
+		r.requestHeaders = make(http.Header)
+	}
+	if r.responseHeaders == nil {
+		r.responseHeaders = make(http.Header)
 	}
 
-	switch {
-	case r.requestHeaders == nil:
-		r.requestHeaders = &extproc.ProcessingRequest_RequestHeaders{}
-	case r.responseHeaders == nil:
-		r.responseHeaders = &extproc.ProcessingRequest_ResponseHeaders{}
+	switch msg := any(message).(type) {
+	case *extproc.ProcessingRequest_RequestHeaders:
+		for _, header := range msg.RequestHeaders.GetHeaders().GetHeaders() {
+			headerValue := cmp.Or(string(header.GetRawValue()), header.GetValue())
+			r.requestHeaders.Add(header.Key, headerValue)
+		}
+	case *extproc.ProcessingRequest_ResponseHeaders:
+		for _, header := range msg.ResponseHeaders.GetHeaders().GetHeaders() {
+			headerValue := cmp.Or(string(header.GetRawValue()), header.GetValue())
+			r.responseHeaders.Add(header.Key, headerValue)
+		}
 	}
 
 	var err error

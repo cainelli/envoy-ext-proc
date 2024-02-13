@@ -46,10 +46,9 @@ func (*SetCookieProcessor) ResponseHeaders(ctx context.Context, crw *processor.C
 
 func parseSetCookies(req *processor.Request) []*http.Cookie {
 	header := http.Header{}
-	for _, p := range req.ResponseHeaders() {
-		if p.GetKey() == "set-cookie" {
-			header.Add("set-cookie", string(p.GetRawValue()))
-		}
+	for _, value := range req.ResponseHeaderValues("set-cookie") {
+		header.Add("set-cookie", value)
+
 	}
 
 	r := http.Response{Header: header}
