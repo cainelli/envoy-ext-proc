@@ -20,12 +20,25 @@ func (*SetCookieProcessor) ResponseHeaders(ctx context.Context, crw *processor.C
 	for i, cookie := range setCookies {
 		cookie.SameSite = http.SameSiteLaxMode
 		cookie.HttpOnly = true
+		// The first set-cookie we overwrite the header, the others we append
 		if i == 0 {
 			crw.HeaderSet("set-cookie", cookie.String())
 			continue
 		}
 		crw.HeaderAppend("set-cookie", cookie.String())
-		slog.Info("processing", "processor", "SetCookie", "method", "ResponseHeaders", "set-cookie", cookie.String())
+
+		slog.Info("processing",
+			"processor", "SetCookie",
+			"phase", "ResponseHeaders",
+			"scheme", req.Scheme(),
+			"authority", req.Authority(),
+			"method", req.Method(),
+			"url", req.URL().Path,
+			"query", req.URL().RawQuery,
+			"request-id", req.RequestID(),
+			"status", req.Status(),
+			"set-cookie", cookie.String(),
+		)
 	}
 
 	return nil, nil

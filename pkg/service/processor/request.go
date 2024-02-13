@@ -24,6 +24,8 @@ type Request struct {
 }
 
 // RequestHeaders returns the HTTP request headers. All header keys will be lower-cased.
+// When using this method to acces the headers, make sure you use the correct HeaderValue property, GetValue() or GetRawValue().
+// https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/base.proto#envoy-v3-api-msg-config-core-v3-headervalue
 func (r *Request) RequestHeaders() []*corev3.HeaderValue {
 	return r.requestHeaders.RequestHeaders.GetHeaders().GetHeaders()
 }
@@ -43,6 +45,8 @@ func (r *Request) GetRequestHeader(key string) string {
 }
 
 // ResponseHeaders returns the HTTP response headers. All header keys will be lower-cased.
+// When using this method to acces the headers, make sure you use the correct HeaderValue property, GetValue() or GetRawValue().
+// https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/base.proto#envoy-v3-api-msg-config-core-v3-headervalue
 func (r *Request) ResponseHeaders() []*corev3.HeaderValue {
 	return r.responseHeaders.ResponseHeaders.GetHeaders().GetHeaders()
 }
