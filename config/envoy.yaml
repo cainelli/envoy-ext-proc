@@ -3,15 +3,11 @@ admin:
   address:
     socket_address:
       address: 0.0.0.0
-      port_value: 15000
-
-node:
-  cluster: envoy
-  id: envoy
+      port_value: 9901
 
 static_resources:
   listeners:
-    - name: httpbin
+    - name: main
       address:
         socket_address:
           address: 0.0.0.0
@@ -22,28 +18,35 @@ static_resources:
               typed_config:
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager"
                 generate_request_id: true
-                preserve_external_request_id: true
-                always_set_request_id_in_response: true
                 tracing: {}
-                stat_prefix: local_route
+                stat_prefix: ingress
                 route_config:
                   name: local_route
                   virtual_hosts:
-                    - name: local_service
+                    - name: default
                       domains:
                         - "*"
                       routes:
                         - match:
                             prefix: "/"
                           route:
-                            cluster: httpbin
+                            cluster: outbound|8000||ext-proc.ext-proc.svc.cluster.local
                 http_filters:
-                  - name: envoy.filters.http.ext_proc
+                  - name: envoy.health_check
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.health_check.v3.HealthCheck
+                      headers:
+                        - name: ":path"
+                          prefix_match: "/_health"
+                      pass_through_mode: false
+                  - name: extproc
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.ext_proc.v3.ExternalProcessor
                       message_timeout: 5s
                       failure_mode_allow: false
                       async_mode: false
+                      mutation_rules:
+                        allow_all_routing: true
                       processing_mode:
                         request_header_mode: "SEND"
                         response_header_mode: "SEND"
@@ -53,40 +56,52 @@ static_resources:
                         response_trailer_mode: "SKIP"
                       grpc_service:
                         envoy_grpc:
-                          cluster_name: outbound|80||ext-proc.ext-proc.svc.cluster.local
+                          cluster_name: outbound|9000||ext-proc.ext-proc.svc.cluster.local
                         timeout: 5s
+                  - name: rewrite
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                      inline_code: |
+                        function envoy_on_request(request_handle)
+                          if request_handle:headers():get(":path"):find("^/response%-headers") then
+                            return
+                          end
+                          request_handle:headers():replace(":path", "/headers?show_env=1")
+                          request_handle:headers():replace(":method", "GET")
+                        end
+
+                        function envoy_on_response(response_handle)
+                        end
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-
-
   clusters:
-  - name: outbound|80||ext-proc.ext-proc.svc.cluster.local
-    connect_timeout: 1s
-    type: strict_dns
-    typed_extension_protocol_options:
-      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
-        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
-        explicit_http_config:
-          http2_protocol_options: {}
-    load_assignment:
-      cluster_name: outbound|80||ext-proc.ext-proc.svc.cluster.local
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                address: ext-proc
-                port_value: 9000
-  - name: httpbin
-    type: STRICT_DNS
-    connect_timeout: 0.25s
-    load_assignment:
-      cluster_name: httpbin
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                address: httpbin
-                port_value: 80
+    - name: outbound|9000||ext-proc.ext-proc.svc.cluster.local
+      connect_timeout: 1s
+      type: STRICT_DNS
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          explicit_http_config:
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: outbound|9000||ext-proc.ext-proc.svc.cluster.local
+        endpoints:
+        - lb_endpoints:
+          - endpoint:
+              address:
+                socket_address:
+                  address: ext-proc
+                  port_value: 9000
+    - name: "outbound|8000||ext-proc.ext-proc.svc.cluster.local"
+      connect_timeout: 0.25s
+      type: STRICT_DNS
+      load_assignment:
+        cluster_name: "outbound|8000||ext-proc.ext-proc.svc.cluster.local"
+        endpoints:
+        - lb_endpoints:
+          - endpoint:
+              address:
+                socket_address:
+                  address: ext-proc
+                  port_value: 8000
