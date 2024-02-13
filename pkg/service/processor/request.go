@@ -24,38 +24,45 @@ type Request struct {
 	responseHeaders http.Header
 }
 
-// RequestHeaders returns the HTTP request headers. All header keys will be lower-cased.
-// When using this method to acces the headers, make sure you use the correct HeaderValue property, GetValue() or GetRawValue().
-// https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/base.proto#envoy-v3-api-msg-config-core-v3-headervalue
+// RequestHeaders returns the key-value pairs in an HTTP header.
+// The keys should be in canonical form, as returned by http.CanonicalHeaderKey.
 func (r *Request) RequestHeaders() map[string][]string {
 	return r.requestHeaders
 }
 
-// GetRequestHeader returns the value of the header with the given key. If the header is not found, it returns an empty string.
-// If the header has multiple values, it returns the first one. If you need all the values, use RequestHeaders()
+// GetRequestHeader gets the first value associated with the given key.
+// If there are no values associated with the key, GetRequestHeader returns "". It is case insensitive;
+// [textproto.CanonicalMIMEHeaderKey] is used to canonicalize the provided key. GetRequestHeader assumes that all keys are stored in canonical form.
+// To use non-canonical keys, access the map directly
 func (r *Request) GetRequestHeader(key string) string {
 	return r.requestHeaders.Get(key)
 }
 
-// RequestHeaderValues returns all the values of the header with the given key. If the header is not found, it returns an empty slice.
+// RequestHeaderValues returns all values associated with the given key.
+// It is case insensitive; [textproto.CanonicalMIMEHeaderKey] is used to canonicalize the provided key.
+// To use non-canonical keys, access the map directly. The returned slice is not a copy.
 func (r *Request) RequestHeaderValues(key string) []string {
 	return r.requestHeaders.Values(key)
 }
 
-// ResponseHeaders returns the HTTP response headers. All header keys will be lower-cased.
-// When using this method to acces the headers, make sure you use the correct HeaderValue property, GetValue() or GetRawValue().
-// https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/base.proto#envoy-v3-api-msg-config-core-v3-headervalue
+// ResponseHeaders returns the key-value pairs in an HTTP header.
+// The keys should be in canonical form, as returned by http.CanonicalHeaderKey.
+
 func (r *Request) ResponseHeaders() map[string][]string {
 	return r.responseHeaders
 }
 
-// GetResponseHeader returns the value of the header with the given key. If the header is not found, it returns an empty string.
-// If the header has multiple values, it returns the first one. If you need all the values, use ResponseHeaders()
+// GetResponseHeader gets the first value associated with the given key.
+// If there are no values associated with the key, GetResponseHeader returns "". It is case insensitive;
+// [textproto.CanonicalMIMEHeaderKey] is used to canonicalize the provided key. GetResponseHeader assumes that all keys are stored in canonical form.
+// To use non-canonical keys, access the map directly
 func (r *Request) GetResponseHeader(key string) string {
 	return r.responseHeaders.Get(key)
 }
 
-// RequestHeaderValues returns all the values of the header with the given key. If the header is not found, it returns an empty slice.
+// ResponseHeaderValues returns all values associated with the given key.
+// It is case insensitive; [textproto.CanonicalMIMEHeaderKey] is used to canonicalize the provided key.
+// To use non-canonical keys, access the map directly. The returned slice is not a copy.
 func (r *Request) ResponseHeaderValues(key string) []string {
 	return r.responseHeaders.Values(key)
 }
