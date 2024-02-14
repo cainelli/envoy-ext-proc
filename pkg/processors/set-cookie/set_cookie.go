@@ -16,8 +16,7 @@ type SetCookieProcessor struct {
 var _ processor.Processor = &SetCookieProcessor{}
 
 func (*SetCookieProcessor) ResponseHeaders(ctx context.Context, crw *processor.CommonResponseWriter, req *processor.Request) (*extproc.ProcessingResponse_ImmediateResponse, error) {
-	setCookies := parseSetCookies(req)
-	for i, cookie := range setCookies {
+	for i, cookie := range req.SetCookies() {
 		cookie.SameSite = http.SameSiteLaxMode
 		cookie.HttpOnly = true
 		// The first set-cookie we overwrite the header, the others we append
@@ -26,7 +25,6 @@ func (*SetCookieProcessor) ResponseHeaders(ctx context.Context, crw *processor.C
 			continue
 		}
 		crw.HeaderAppend("set-cookie", cookie.String())
-
 		slog.Info("processing",
 			"processor", "SetCookie",
 			"phase", "ResponseHeaders",
@@ -42,15 +40,4 @@ func (*SetCookieProcessor) ResponseHeaders(ctx context.Context, crw *processor.C
 	}
 
 	return nil, nil
-}
-
-func parseSetCookies(req *processor.Request) []*http.Cookie {
-	header := http.Header{}
-	for _, value := range req.ResponseHeaderValues("set-cookie") {
-		header.Add("set-cookie", value)
-
-	}
-
-	r := http.Response{Header: header}
-	return r.Cookies()
 }

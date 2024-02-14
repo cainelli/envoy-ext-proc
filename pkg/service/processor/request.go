@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
 
 	extproc "github.com/envoyproxy/go-control-plane/envoy/service/ext_proc/v3"
 )
@@ -19,11 +18,13 @@ type Request struct {
 	authority       string
 	method          string
 	url             *url.URL
-	requestId       string
+	requestID       string
 	status          int
 	requestHeaders  http.Header
 	responseHeaders http.Header
-	metadata        *sync.Map
+	cookies         []http.Cookie
+	setCookies      []http.Cookie
+	metadata        map[string]any
 }
 
 // RequestHeaders returns the key-value pairs in an HTTP header.
@@ -91,7 +92,7 @@ func (r *Request) URL() *url.URL {
 
 // RequestID returns the request ID of the request
 func (r *Request) RequestID() string {
-	return r.requestId
+	return r.requestID
 }
 
 // Status returns the status of the response
@@ -99,8 +100,18 @@ func (r *Request) Status() int {
 	return r.status
 }
 
+// Cookies returns the cookies of the request
+func (r *Request) Cookies() []http.Cookie {
+	return r.cookies
+}
+
+// SetCookies returns the set cookies of the response
+func (r *Request) SetCookies() []http.Cookie {
+	return r.setCookies
+}
+
 // Metadata returns the metadata of the request, it can be used to excange information between the different processors
-func (r *Request) Metadata() *sync.Map {
+func (r *Request) Metadata() map[string]any {
 	return r.metadata
 }
 
@@ -114,7 +125,7 @@ func (r *Request) Process(message any) {
 		r.responseHeaders = make(http.Header)
 	}
 	if r.metadata == nil {
-		r.metadata = &sync.Map{}
+		r.metadata = make(map[string]any)
 	}
 
 	switch msg := any(message).(type) {
@@ -140,8 +151,8 @@ func (r *Request) Process(message any) {
 	if r.method == "" {
 		r.method = r.GetRequestHeader(":method")
 	}
-	if r.requestId == "" {
-		r.requestId = r.GetRequestHeader("x-request-id")
+	if r.requestID == "" {
+		r.requestID = r.GetRequestHeader("x-request-id")
 	}
 	if r.url == nil {
 		r.url, err = url.Parse(r.GetRequestHeader(":path"))
@@ -156,5 +167,17 @@ func (r *Request) Process(message any) {
 	if r.status == 0 {
 		status, _ := strconv.Atoi(r.GetResponseHeader(":status"))
 		r.status = status
+	}
+	if r.cookies == nil && r.requestHeaders.Get("cookie") != "" {
+		httpreq := http.Request{Header: r.requestHeaders}
+		for _, cookie := range httpreq.Cookies() {
+			r.cookies = append(r.cookies, *cookie)
+		}
+	}
+	if r.setCookies == nil && r.responseHeaders.Get("set-cookie") != "" {
+		httpresp := http.Response{Header: r.responseHeaders}
+		for _, cookie := range httpresp.Cookies() {
+			r.setCookies = append(r.setCookies, *cookie)
+		}
 	}
 }
