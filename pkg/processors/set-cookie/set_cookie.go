@@ -15,7 +15,7 @@ type SetCookieProcessor struct {
 
 var _ processor.Processor = &SetCookieProcessor{}
 
-func (*SetCookieProcessor) ResponseHeaders(ctx context.Context, crw *processor.CommonResponseWriter, req *processor.Request) (*extproc.ProcessingResponse_ImmediateResponse, error) {
+func (*SetCookieProcessor) ResponseHeaders(ctx context.Context, crw *processor.CommonResponseWriter, req *processor.RequestContext) (*extproc.ProcessingResponse_ImmediateResponse, error) {
 	for i, cookie := range req.SetCookies() {
 		cookie.SameSite = http.SameSiteLaxMode
 		cookie.HttpOnly = true

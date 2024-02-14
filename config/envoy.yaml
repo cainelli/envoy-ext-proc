@@ -52,10 +52,10 @@ static_resources:
                       processing_mode:
                         request_header_mode: "SEND"
                         response_header_mode: "SEND"
-                        request_body_mode: "NONE"
-                        response_body_mode: "NONE"
-                        request_trailer_mode: "SKIP"
-                        response_trailer_mode: "SKIP"
+                        request_body_mode: "BUFFERED"
+                        response_body_mode: "BUFFERED"
+                        request_trailer_mode: "SEND"
+                        response_trailer_mode: "SEND"
                       grpc_service:
                         envoy_grpc:
                           cluster_name: outbound|9000||ext-proc.ext-proc.svc.cluster.local

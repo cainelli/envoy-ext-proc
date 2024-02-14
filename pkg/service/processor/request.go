@@ -10,10 +10,10 @@ import (
 	extproc "github.com/envoyproxy/go-control-plane/envoy/service/ext_proc/v3"
 )
 
-// Request stores the context between the different gRPC messages received from Envoy and it is used to store the request headers, response headers, and other information about the request.
+// RequestContext stores the context between the different gRPC messages received from Envoy and it is used to store the request headers, response headers, and other information about the request.
 // The Process method should be called on every message received from Envoy in order to update the request object.
 // Note that the request object is not thread-safe and should not be shared between goroutines.
-type Request struct {
+type RequestContext struct {
 	scheme          string
 	authority       string
 	method          string
@@ -29,7 +29,7 @@ type Request struct {
 
 // RequestHeaders returns the key-value pairs in an HTTP header.
 // The keys should be in canonical form, as returned by http.CanonicalHeaderKey.
-func (r *Request) RequestHeaders() map[string][]string {
+func (r *RequestContext) RequestHeaders() map[string][]string {
 	return r.requestHeaders
 }
 
@@ -37,21 +37,21 @@ func (r *Request) RequestHeaders() map[string][]string {
 // If there are no values associated with the key, GetRequestHeader returns "". It is case insensitive;
 // [textproto.CanonicalMIMEHeaderKey] is used to canonicalize the provided key. GetRequestHeader assumes that all keys are stored in canonical form.
 // To use non-canonical keys, access the map directly
-func (r *Request) GetRequestHeader(key string) string {
+func (r *RequestContext) GetRequestHeader(key string) string {
 	return r.requestHeaders.Get(key)
 }
 
 // RequestHeaderValues returns all values associated with the given key.
 // It is case insensitive; [textproto.CanonicalMIMEHeaderKey] is used to canonicalize the provided key.
 // To use non-canonical keys, access the map directly. The returned slice is not a copy.
-func (r *Request) RequestHeaderValues(key string) []string {
+func (r *RequestContext) RequestHeaderValues(key string) []string {
 	return r.requestHeaders.Values(key)
 }
 
 // ResponseHeaders returns the key-value pairs in an HTTP header.
 // The keys should be in canonical form, as returned by http.CanonicalHeaderKey.
 
-func (r *Request) ResponseHeaders() map[string][]string {
+func (r *RequestContext) ResponseHeaders() map[string][]string {
 	return r.responseHeaders
 }
 
@@ -59,65 +59,65 @@ func (r *Request) ResponseHeaders() map[string][]string {
 // If there are no values associated with the key, GetResponseHeader returns "". It is case insensitive;
 // [textproto.CanonicalMIMEHeaderKey] is used to canonicalize the provided key. GetResponseHeader assumes that all keys are stored in canonical form.
 // To use non-canonical keys, access the map directly
-func (r *Request) GetResponseHeader(key string) string {
+func (r *RequestContext) GetResponseHeader(key string) string {
 	return r.responseHeaders.Get(key)
 }
 
 // ResponseHeaderValues returns all values associated with the given key.
 // It is case insensitive; [textproto.CanonicalMIMEHeaderKey] is used to canonicalize the provided key.
 // To use non-canonical keys, access the map directly. The returned slice is not a copy.
-func (r *Request) ResponseHeaderValues(key string) []string {
+func (r *RequestContext) ResponseHeaderValues(key string) []string {
 	return r.responseHeaders.Values(key)
 }
 
 // Scheme returns the scheme of the request (http or https)
-func (r *Request) Scheme() string {
+func (r *RequestContext) Scheme() string {
 	return r.scheme
 }
 
 // Authority returns the authority of the request
-func (r *Request) Authority() string {
+func (r *RequestContext) Authority() string {
 	return r.authority
 }
 
 // Method returns the method of the request (GET, POST, PUT, etc)
-func (r *Request) Method() string {
+func (r *RequestContext) Method() string {
 	return r.method
 }
 
 // URL returns the URL of the request
-func (r *Request) URL() *url.URL {
+func (r *RequestContext) URL() *url.URL {
 	return r.url
 }
 
 // RequestID returns the request ID of the request
-func (r *Request) RequestID() string {
+func (r *RequestContext) RequestID() string {
 	return r.requestID
 }
 
 // Status returns the status of the response
-func (r *Request) Status() int {
+func (r *RequestContext) Status() int {
 	return r.status
 }
 
 // Cookies returns the cookies of the request
-func (r *Request) Cookies() []http.Cookie {
+func (r *RequestContext) Cookies() []http.Cookie {
 	return r.cookies
 }
 
 // SetCookies returns the set cookies of the response
-func (r *Request) SetCookies() []http.Cookie {
+func (r *RequestContext) SetCookies() []http.Cookie {
 	return r.setCookies
 }
 
 // Metadata returns the metadata of the request, it can be used to excange information between the different processors
-func (r *Request) Metadata() map[string]any {
+func (r *RequestContext) Metadata() map[string]any {
 	return r.metadata
 }
 
 // Process processes the given message and updates the request object accordingly
 // It should be called on every message received from Envoy
-func (r *Request) Process(message any) {
+func (r *RequestContext) Process(message any) {
 	if r.requestHeaders == nil {
 		r.requestHeaders = make(http.Header)
 	}
