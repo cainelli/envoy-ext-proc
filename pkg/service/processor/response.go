@@ -47,20 +47,6 @@ func (crw *CommonResponseWriter) HeaderAction(key string, value string, appendAc
 	})
 }
 
-// GetMutatedHeader returns the value of the header that was mutated by one of the processors.
-// If the header has multiple values, it returns the first one. If you need all the values, use the underlying CommonResponse().HeaderMutation.SetHeaders
-func (crw *CommonResponseWriter) GetMutatedHeader(key string) string {
-	for _, h := range crw.commonResponse.GetHeaderMutation().GetSetHeaders() {
-		if h.GetHeader().GetKey() == key {
-			if h.GetHeader().GetValue() != "" {
-				return h.GetHeader().GetValue()
-			}
-			return string(h.GetHeader().GetRawValue())
-		}
-	}
-	return ""
-}
-
 // HeaderSet sets a header with the given key and value using the OVERWRITE_IF_EXISTS_OR_ADD action
 // This action will overwrite the specified value by discarding any existing values if the header already exists. If the header doesn't exist then this will add the header with specified key and value.
 func (crw *CommonResponseWriter) HeaderSet(key string, value string) *CommonResponseWriter {

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 
 	extproc "github.com/envoyproxy/go-control-plane/envoy/service/ext_proc/v3"
 )
@@ -22,6 +23,7 @@ type Request struct {
 	status          int
 	requestHeaders  http.Header
 	responseHeaders http.Header
+	metadata        *sync.Map
 }
 
 // RequestHeaders returns the key-value pairs in an HTTP header.
@@ -97,6 +99,11 @@ func (r *Request) Status() int {
 	return r.status
 }
 
+// Metadata returns the metadata of the request, it can be used to excange information between the different processors
+func (r *Request) Metadata() *sync.Map {
+	return r.metadata
+}
+
 // Process processes the given message and updates the request object accordingly
 // It should be called on every message received from Envoy
 func (r *Request) Process(message any) {
@@ -105,6 +112,9 @@ func (r *Request) Process(message any) {
 	}
 	if r.responseHeaders == nil {
 		r.responseHeaders = make(http.Header)
+	}
+	if r.metadata == nil {
+		r.metadata = &sync.Map{}
 	}
 
 	switch msg := any(message).(type) {

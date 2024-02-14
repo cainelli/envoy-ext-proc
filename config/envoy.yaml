@@ -45,8 +45,10 @@ static_resources:
                       message_timeout: 5s
                       failure_mode_allow: false
                       async_mode: false
+                      allow_mode_override: true
                       mutation_rules:
                         allow_all_routing: true
+                        allow_envoy: true
                       processing_mode:
                         request_header_mode: "SEND"
                         response_header_mode: "SEND"
